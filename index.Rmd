@@ -1,0 +1,96 @@
+---
+title: "HW2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Inspiration for Graph
+I recently saw on the news that Boise, Idaho has the most overpriced housing market in the country when taking into consideration average wage, wage growth, and the increase in housing costs over the past few years. Having recently moved away from Idaho myself, I wanted to explore the data and (perhaps with a little bit of vindictive feelings) demonstrate just how rediculously overpriced housing is there.
+
+### Data Source
+Data for this graphic was collected from the following source:
+
+https://fred.stlouisfed.org/series/ATNHPIUS14260Q
+
+https://fred.stlouisfed.org/series/MEHOINUSIDA646N
+
+
+### Data Prep
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(plotly)
+library(lubridate)
+```
+
+```{r}
+avgHouseCost <- read_excel('C:/Users/Jeffrey/Desktop/My Documents/Grad School/Classes/Fall 2022/Staa 566/HW2/IdahoAvgHousePrices.xlsx')	
+avgHouseCost <- data.frame(avgHouseCost)
+
+medianHouseholdIncome <- read_excel('C:/Users/Jeffrey/Desktop/My Documents/Grad School/Classes/Fall 2022/Staa 566/HW2/IdahoMedianHouseholdIncome.xlsx')	
+medianHouseholdIncome <- data.frame(medianHouseholdIncome)
+
+df <- avgHouseCost %>% inner_join(medianHouseholdIncome, by='TheYear')
+df$TheYear <- year(df$TheYear)
+df$IncomePercentOfHomecost <- df$MedianHouseholdIncome/df$AvgHouseCost
+df <- data.frame(df)
+```
+
+
+### Functionality and Formatting Reasoning:
+Perhaps the most important formatting decision was to display the graphs in a way that lets them share the x-axis, but all have their own y-axis. 
+Only slightly second to this is to also a range slider. The range slider does two things. It allows the users to highlight specific timeframes, such as the 2008 housing bubble, and the most recent few years. It also overlaps all of the graphs, this allows the user at a glance to see when and where trends change and overlap between the variables.
+
+The combination of the above demonstrates how overpriced housing is compared to local income. It shows that while both income and housing costs are increasing, the rate at which housing costs are increasing, far outstrips wage increases.
+
+I considered adding interactive tips to the display, but to me, for this graph, they are more distracting than informative. I didn't like the default line colors and sizes so I made them thinner and changed the colors to what I felt are a little more professional looking. I made the green ratio line slightly bigger than the other two because that line communicates both the most important information I want to communicate with this graph.
+
+
+```{r}
+avgHouseCost_Plot <- plot_ly(df, 
+                             x = ~TheYear, 
+                             y = ~AvgHouseCost, 
+                             name = "House Cost",
+                             type = 'scatter', 
+                             mode = 'lines',
+                             color = I("dark red"),
+                             line=list(width=1)
+                             )
+
+medianIncomePlot <- plot_ly(df, 
+                            x = ~TheYear, 
+                            y = ~MedianHouseholdIncome, 
+                            name = "Income",
+                            type = 'scatter', 
+                            mode = 'lines',
+                            color = I("dark blue"),
+                            line=list(width=1)
+                            )
+
+ratioPlot <- plot_ly(df, 
+                     x = ~TheYear, 
+                     y = ~IncomePercentOfHomecost, 
+                     name = "Income to Cost Ratio",
+                     type = 'scatter', 
+                     mode = 'lines',
+                     color = I("dark green"),
+                     line=list(width=2)
+                     )
+
+idahoHousingAndIncome <- subplot(list(avgHouseCost_Plot,medianIncomePlot, ratioPlot),
+                              nrows = 3, 
+                              shareX = TRUE,
+                              titleX = FALSE)  %>%
+  rangeslider() %>%
+  layout(title = 'Idaho Housing and Income Costs Over Time')
+
+idahoHousingAndIncome
+```
+
+
+
